@@ -29,24 +29,24 @@ export function AccountList({ onEdit, onDelete }) {
         {accounts.map(account => (
           <div key={account.id} className="account-card" style={{ borderLeftColor: ACCOUNT_COLORS[account.type] }}>
             <div className="account-header">
-              <h4>{ACCOUNT_TYPES[account.type]}</h4>
+              <h4>{account.nickname || ACCOUNT_TYPES[account.type]}</h4>
               <div className="account-actions">
                 {onEdit && (
                   <button 
                     onClick={() => onEdit(account)} 
-                    className="btn-icon"
+                    className="btn-icon btn-edit"
                     title="Edit account"
                   >
-                    ✏️
+                    Edit
                   </button>
                 )}
                 {onDelete && (
                   <button 
                     onClick={() => onDelete(account.id)} 
-                    className="btn-icon"
+                    className="btn-icon btn-delete"
                     title="Delete account"
                   >
-                    🗑️
+                    Delete
                   </button>
                 )}
               </div>

@@ -56,3 +56,53 @@ tbody tr:hover {
   font-weight: 600;
   color: #00ff88;
 }
+
+.account-type-header {
+  text-align: center;
+  background-color: #21262d;
+  color: #e5e7eb;
+  font-weight: 700;
+  border-left: 2px solid #30363d;
+  border-right: 2px solid #30363d;
+}
+
+.account-name-header {
+  text-align: center;
+  background-color: #1a1f26;
+  color: #00b9ff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-left: 1px solid #21262d;
+  border-right: 1px solid #21262d;
+  padding: 0.5rem 0.75rem;
+}
+
+.account-name-header:first-of-type {
+  border-left: 2px solid #30363d;
+}
+
+.account-column-header {
+  text-align: center;
+  font-size: 0.75rem;
+  background-color: #161b22;
+  border-left: 1px solid #21262d;
+  border-right: 1px solid #21262d;
+  padding: 0.5rem 0.5rem;
+}
+
+.account-column-header:first-of-type {
+  border-left: 2px solid #30363d;
+}
+
+.account-column-header:last-of-type {
+  border-right: 2px solid #30363d;
+}
+
+tbody td {
+  text-align: right;
+}
+
+tbody td:first-child,
+tbody td:nth-child(2) {
+  text-align: left;
+}

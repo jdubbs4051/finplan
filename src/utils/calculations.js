@@ -10,15 +10,39 @@ export function calculate401kForecast(account, profile, variance = 0) {
   const monthlyRate = adjustedRate / 100 / 12;
   let currentSalary = profile.currentSalary;
   const salaryGrowthRate = profile.salaryGrowthRate / 100;
+  
+  // Calculate total years: from now until retirement age + 20 years
+  const yearsToRetirement = profile.retirementAge - profile.currentAge;
+  const yearsAfterRetirement = 20;
+  const totalYears = yearsToRetirement + yearsAfterRetirement;
 
-  for (let year = 0; year <= account.timeHorizon; year++) {
+  for (let year = 0; year <= totalYears; year++) {
     let yearContributions = 0;
     let yearInterest = 0;
     const startBalance = balance;
+    const currentAge = profile.currentAge + year;
+    const isRetired = currentAge >= profile.retirementAge;
 
-    // Calculate monthly contributions and match
-    for (let month = 0; month < 12 && year < account.timeHorizon; month++) {
-      const monthlyContribution = account.monthlyContribution;
+    // Calculate monthly contributions and match (only before retirement)
+    for (let month = 0; month < 12 && year <= totalYears; month++) {
+      // Stop contributions at retirement age
+      if (isRetired) {
+        // No contributions, only growth
+        const monthlyInterest = balance * monthlyRate;
+        yearInterest += monthlyInterest;
+        balance *= (1 + monthlyRate);
+        continue;
+      }
+
+      // Calculate monthly contribution from percentage if available, otherwise use stored value
+      let monthlyContribution;
+      if (account.contributionPercentage !== undefined) {
+        const annualContribution = (currentSalary * account.contributionPercentage) / 100;
+        monthlyContribution = annualContribution / 12;
+      } else {
+        monthlyContribution = account.monthlyContribution;
+      }
+      
       let companyMatch = 0;
 
       if (account.hasCompanyMatch) {
@@ -28,7 +52,6 @@ export function calculate401kForecast(account, profile, variance = 0) {
       }
 
       const totalMonthlyContribution = monthlyContribution + companyMatch;
-      const balanceBeforeGrowth = balance + totalMonthlyContribution;
       balance += totalMonthlyContribution;
       yearContributions += totalMonthlyContribution;
 
@@ -44,7 +67,7 @@ export function calculate401kForecast(account, profile, variance = 0) {
 
     results.push({
       year,
-      age: profile.currentAge + year,
+      age: currentAge,
       balance: balance,
       contributions: yearContributions,
       interest: yearInterest,
@@ -52,8 +75,8 @@ export function calculate401kForecast(account, profile, variance = 0) {
       total: balance
     });
 
-    // Update salary for next year
-    if (year < account.timeHorizon) {
+    // Update salary for next year (only before retirement)
+    if (!isRetired && year < totalYears) {
       currentSalary *= (1 + salaryGrowthRate);
     }
   }
@@ -64,19 +87,43 @@ export function calculate401kForecast(account, profile, variance = 0) {
 /**
  * Calculate dividend account forecast
  */
-export function calculateDividendForecast(account, variance = 0) {
+export function calculateDividendForecast(account, profile, variance = 0) {
   const results = [];
   let balance = account.currentBalance;
   const adjustedGrowthRate = account.underlyingAssetGrowth + variance;
   const monthlyGrowthRate = adjustedGrowthRate / 100 / 12;
   const annualYield = account.expectedYield / 100;
+  
+  // Calculate total years: from now until retirement age + 20 years
+  const yearsToRetirement = profile.retirementAge - profile.currentAge;
+  const yearsAfterRetirement = 20;
+  const totalYears = yearsToRetirement + yearsAfterRetirement;
 
-  for (let year = 0; year <= account.timeHorizon; year++) {
+  for (let year = 0; year <= totalYears; year++) {
     let yearContributions = 0;
     let yearInterest = 0;
     const startBalance = balance;
+    const currentAge = profile.currentAge + year;
+    const isRetired = currentAge >= profile.retirementAge;
 
-    for (let month = 0; month < 12 && year < account.timeHorizon; month++) {
+    for (let month = 0; month < 12 && year <= totalYears; month++) {
+      // Stop contributions at retirement age
+      if (isRetired) {
+        // No contributions, only growth
+        const growthInterest = balance * monthlyGrowthRate;
+        yearInterest += growthInterest;
+        balance *= (1 + monthlyGrowthRate);
+        
+        // Apply dividend yield (monthly)
+        const monthlyYield = annualYield / 12;
+        if (account.dripEnabled) {
+          const dividendInterest = balance * monthlyYield;
+          yearInterest += dividendInterest;
+          balance *= (1 + monthlyYield);
+        }
+        continue;
+      }
+
       // Add monthly contribution
       balance += account.monthlyContribution;
       yearContributions += account.monthlyContribution;
@@ -101,6 +148,7 @@ export function calculateDividendForecast(account, variance = 0) {
 
     results.push({
       year,
+      age: currentAge,
       balance: balance,
       contributions: yearContributions,
       interest: yearInterest,
@@ -115,18 +163,34 @@ export function calculateDividendForecast(account, variance = 0) {
 /**
  * Calculate HYSA forecast
  */
-export function calculateHYSAForecast(account, variance = 0) {
+export function calculateHYSAForecast(account, profile, variance = 0) {
   const results = [];
   let balance = account.currentBalance;
   const adjustedAPY = account.apy + variance;
   const monthlyRate = adjustedAPY / 100 / 12;
+  
+  // Calculate total years: from now until retirement age + 20 years
+  const yearsToRetirement = profile.retirementAge - profile.currentAge;
+  const yearsAfterRetirement = 20;
+  const totalYears = yearsToRetirement + yearsAfterRetirement;
 
-  for (let year = 0; year <= account.timeHorizon; year++) {
+  for (let year = 0; year <= totalYears; year++) {
     let yearContributions = 0;
     let yearInterest = 0;
     const startBalance = balance;
+    const currentAge = profile.currentAge + year;
+    const isRetired = currentAge >= profile.retirementAge;
 
-    for (let month = 0; month < 12 && year < account.timeHorizon; month++) {
+    for (let month = 0; month < 12 && year <= totalYears; month++) {
+      // Stop contributions at retirement age
+      if (isRetired) {
+        // No contributions, only growth
+        const monthlyInterest = balance * monthlyRate;
+        yearInterest += monthlyInterest;
+        balance *= (1 + monthlyRate);
+        continue;
+      }
+
       balance += account.monthlyContribution;
       yearContributions += account.monthlyContribution;
       
@@ -141,6 +205,7 @@ export function calculateHYSAForecast(account, variance = 0) {
 
     results.push({
       year,
+      age: currentAge,
       balance: balance,
       contributions: yearContributions,
       interest: yearInterest,
@@ -155,18 +220,34 @@ export function calculateHYSAForecast(account, variance = 0) {
 /**
  * Calculate brokerage account forecast
  */
-export function calculateBrokerageForecast(account, variance = 0) {
+export function calculateBrokerageForecast(account, profile, variance = 0) {
   const results = [];
   let balance = account.currentBalance;
   const adjustedRate = account.expectedReturnRate + variance;
   const monthlyRate = adjustedRate / 100 / 12;
+  
+  // Calculate total years: from now until retirement age + 20 years
+  const yearsToRetirement = profile.retirementAge - profile.currentAge;
+  const yearsAfterRetirement = 20;
+  const totalYears = yearsToRetirement + yearsAfterRetirement;
 
-  for (let year = 0; year <= account.timeHorizon; year++) {
+  for (let year = 0; year <= totalYears; year++) {
     let yearContributions = 0;
     let yearInterest = 0;
     const startBalance = balance;
+    const currentAge = profile.currentAge + year;
+    const isRetired = currentAge >= profile.retirementAge;
 
-    for (let month = 0; month < 12 && year < account.timeHorizon; month++) {
+    for (let month = 0; month < 12 && year <= totalYears; month++) {
+      // Stop contributions at retirement age
+      if (isRetired) {
+        // No contributions, only growth
+        const monthlyInterest = balance * monthlyRate;
+        yearInterest += monthlyInterest;
+        balance *= (1 + monthlyRate);
+        continue;
+      }
+
       balance += account.monthlyContribution;
       yearContributions += account.monthlyContribution;
       
@@ -181,6 +262,7 @@ export function calculateBrokerageForecast(account, variance = 0) {
 
     results.push({
       year,
+      age: currentAge,
       balance: balance,
       contributions: yearContributions,
       interest: yearInterest,
@@ -200,11 +282,11 @@ export function calculateAccountForecast(account, profile, variance = 0) {
     case '401k':
       return calculate401kForecast(account, profile, variance);
     case 'dividend':
-      return calculateDividendForecast(account, variance);
+      return calculateDividendForecast(account, profile, variance);
     case 'hysa':
-      return calculateHYSAForecast(account, variance);
+      return calculateHYSAForecast(account, profile, variance);
     case 'brokerage':
-      return calculateBrokerageForecast(account, variance);
+      return calculateBrokerageForecast(account, profile, variance);
     default:
       return [];
   }

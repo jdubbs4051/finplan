@@ -6,9 +6,23 @@ import './AccountForm.css';
 
 export function Account401k({ account, onSave, onCancel }) {
   const { profile } = useApp();
+  
+  // Calculate percentage from existing monthly contribution if available
+  const getInitialPercentage = () => {
+    if (account?.contributionPercentage !== undefined) {
+      return account.contributionPercentage;
+    }
+    if (account?.monthlyContribution && profile?.currentSalary) {
+      const annualContribution = account.monthlyContribution * 12;
+      return (annualContribution / profile.currentSalary) * 100;
+    }
+    return '';
+  };
+
   const [formData, setFormData] = useState({
+    nickname: account?.nickname || '',
     currentBalance: account?.currentBalance || '',
-    monthlyContribution: account?.monthlyContribution || '',
+    contributionPercentage: getInitialPercentage(),
     timeHorizon: account?.timeHorizon || '',
     rateOfReturn: account?.rateOfReturn || DEFAULT_401K_RETURN_RATE,
     hasCompanyMatch: account?.hasCompanyMatch || false,
@@ -19,9 +33,11 @@ export function Account401k({ account, onSave, onCancel }) {
   const [validation, setValidation] = useState(null);
 
   useEffect(() => {
-    if (formData.monthlyContribution && profile) {
+    if (formData.contributionPercentage && profile) {
+      const annualContribution = (profile.currentSalary * Number(formData.contributionPercentage)) / 100;
+      const monthlyContribution = annualContribution / 12;
       const validationResult = validate401kContribution(
-        Number(formData.monthlyContribution),
+        monthlyContribution,
         profile.currentAge,
         Number(formData.timeHorizon) || 0,
         profile
@@ -30,7 +46,7 @@ export function Account401k({ account, onSave, onCancel }) {
     } else {
       setValidation(null);
     }
-  }, [formData.monthlyContribution, formData.timeHorizon, profile]);
+  }, [formData.contributionPercentage, formData.timeHorizon, profile]);
 
   const validate = () => {
     const newErrors = {};
@@ -39,8 +55,12 @@ export function Account401k({ account, onSave, onCancel }) {
       newErrors.currentBalance = 'Current balance must be 0 or greater';
     }
 
-    if (!formData.monthlyContribution || formData.monthlyContribution < 0) {
-      newErrors.monthlyContribution = 'Monthly contribution must be 0 or greater';
+    if (!formData.contributionPercentage || formData.contributionPercentage < 0) {
+      newErrors.contributionPercentage = 'Contribution percentage must be 0 or greater';
+    }
+
+    if (formData.contributionPercentage > 100) {
+      newErrors.contributionPercentage = 'Contribution percentage cannot exceed 100%';
     }
 
     if (!formData.timeHorizon || formData.timeHorizon <= 0) {
@@ -61,7 +81,7 @@ export function Account401k({ account, onSave, onCancel }) {
     }
 
     if (validation && !validation.isValid) {
-      newErrors.monthlyContribution = `Annual contribution exceeds IRS limit of $${validation.limit.toLocaleString()}`;
+      newErrors.contributionPercentage = `Annual contribution exceeds IRS limit of $${validation.limit.toLocaleString()}`;
     }
 
     setErrors(newErrors);
@@ -75,10 +95,16 @@ export function Account401k({ account, onSave, onCancel }) {
       return;
     }
 
+    // Calculate monthly contribution from percentage
+    const annualContribution = (profile.currentSalary * Number(formData.contributionPercentage)) / 100;
+    const monthlyContribution = annualContribution / 12;
+
     const accountData = {
       type: '401k',
+      nickname: formData.nickname.trim() || undefined,
       currentBalance: Number(formData.currentBalance),
-      monthlyContribution: Number(formData.monthlyContribution),
+      contributionPercentage: Number(formData.contributionPercentage),
+      monthlyContribution: monthlyContribution, // Store both for backward compatibility
       timeHorizon: Number(formData.timeHorizon),
       rateOfReturn: Number(formData.rateOfReturn),
       hasCompanyMatch: formData.hasCompanyMatch,
@@ -113,6 +139,20 @@ export function Account401k({ account, onSave, onCancel }) {
       <h3>401(k) Account</h3>
 
       <div className="form-group">
+        <label htmlFor="nickname">Nickname (Optional)</label>
+        <input
+          type="text"
+          id="nickname"
+          name="nickname"
+          value={formData.nickname}
+          onChange={handleChange}
+          placeholder="e.g., Work 401k, Retirement Fund"
+          maxLength={50}
+        />
+        <small className="form-help">Give this account a friendly name to identify it easily</small>
+      </div>
+
+      <div className="form-group">
         <label htmlFor="currentBalance">Current Balance ($)</label>
         <input
           type="number"
@@ -128,26 +168,33 @@ export function Account401k({ account, onSave, onCancel }) {
       </div>
 
       <div className="form-group">
-        <label htmlFor="monthlyContribution">Monthly Contribution ($)</label>
+        <label htmlFor="contributionPercentage">Monthly Contribution (% of Salary)</label>
         <input
           type="number"
-          id="monthlyContribution"
-          name="monthlyContribution"
-          value={formData.monthlyContribution}
+          id="contributionPercentage"
+          name="contributionPercentage"
+          value={formData.contributionPercentage}
           onChange={handleChange}
           min="0"
-          step="50"
+          max="100"
+          step="0.1"
           required
         />
+        {formData.contributionPercentage && profile && (
+          <small className="form-help">
+            ${((profile.currentSalary * Number(formData.contributionPercentage)) / 100 / 12).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} per month
+            {profile.currentSalary && ` (${((profile.currentSalary * Number(formData.contributionPercentage)) / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 })} annually)`}
+          </small>
+        )}
         {validation && (
           <div className={`validation-message ${validation.isValid ? 'valid' : 'invalid'}`}>
             {validation.isValid 
-              ? `Annual contribution: $${validation.annualContribution.toLocaleString()} (within limit)`
-              : `Annual contribution: $${validation.annualContribution.toLocaleString()} exceeds limit by $${validation.exceedsBy.toLocaleString()}`
+              ? `Annual contribution: ${validation.annualContribution.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 })} (within limit)`
+              : `Annual contribution: ${validation.annualContribution.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 })} exceeds limit by ${validation.exceedsBy.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
             }
           </div>
         )}
-        {errors.monthlyContribution && <span className="error">{errors.monthlyContribution}</span>}
+        {errors.contributionPercentage && <span className="error">{errors.contributionPercentage}</span>}
       </div>
 
       <div className="form-group">

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext.jsx';
-import { Header } from './components/Layout/Header.jsx';
 import { Navigation } from './components/Layout/Navigation.jsx';
 import { ProfileForm } from './components/Profile/ProfileForm.jsx';
 import { ProfileDisplay } from './components/Profile/ProfileDisplay.jsx';
@@ -10,9 +9,6 @@ import { AccountDividend } from './components/Accounts/AccountDividend.jsx';
 import { AccountHYSA } from './components/Accounts/AccountHYSA.jsx';
 import { AccountBrokerage } from './components/Accounts/AccountBrokerage.jsx';
 import { AggregatedView } from './components/Forecast/AggregatedView.jsx';
-import { ForecastTable } from './components/Forecast/ForecastTable.jsx';
-import { ForecastChart } from './components/Forecast/ForecastChart.jsx';
-import { calculateAccountForecast } from './utils/calculations.js';
 import './App.css';
 
 function AppContent() {
@@ -21,8 +17,6 @@ function AppContent() {
   const [showAccountForm, setShowAccountForm] = useState(false);
   const [selectedAccountType, setSelectedAccountType] = useState(null);
   const [editingAccount, setEditingAccount] = useState(null);
-  const [selectedAccountForForecast, setSelectedAccountForForecast] = useState(null);
-  const [forecastViewMode, setForecastViewMode] = useState('aggregated'); // 'aggregated' or 'individual'
 
   const handleAddAccount = () => {
     setEditingAccount(null);
@@ -76,60 +70,9 @@ function AppContent() {
     }
   };
 
-  const renderForecastView = () => {
-    if (forecastViewMode === 'aggregated') {
-      return <AggregatedView />;
-    } else {
-      // Individual account forecast
-      const forecasts = accounts.map(account => ({
-        accountType: account.type,
-        accountName: account.name || account.type,
-        forecast: calculateAccountForecast(account, profile)
-      }));
-
-      return (
-        <div>
-          <div className="forecast-controls">
-            <h3>Individual Account Forecast</h3>
-            <select
-              value={selectedAccountForForecast?.id || ''}
-              onChange={(e) => {
-                const account = accounts.find(acc => acc.id === e.target.value);
-                setSelectedAccountForForecast(account || null);
-              }}
-              className="account-selector"
-            >
-              <option value="">Select an account</option>
-              {accounts.map(account => (
-                <option key={account.id} value={account.id}>
-                  {account.type} - ${account.currentBalance.toLocaleString()}
-                </option>
-              ))}
-            </select>
-          </div>
-          {selectedAccountForForecast && (
-            <>
-              <ForecastChart
-                forecasts={[{
-                  accountType: selectedAccountForForecast.type,
-                  accountName: selectedAccountForForecast.type,
-                  forecast: calculateAccountForecast(selectedAccountForForecast, profile)
-                }]}
-                showAggregated={false}
-                accounts={accounts}
-                profile={profile}
-              />
-              <ForecastTable account={selectedAccountForForecast} showAggregated={false} />
-            </>
-          )}
-        </div>
-      );
-    }
-  };
 
   return (
     <div className="app">
-      <Header />
       <Navigation currentView={currentView} onViewChange={setCurrentView} />
 
       <main className="app-main">
@@ -207,24 +150,7 @@ function AppContent() {
 
         {currentView === 'forecast' && (
           <div className="forecast-view">
-            <div className="forecast-header">
-              <h2>Financial Forecast</h2>
-              <div className="forecast-mode-toggle">
-                <button
-                  className={forecastViewMode === 'aggregated' ? 'active' : ''}
-                  onClick={() => setForecastViewMode('aggregated')}
-                >
-                  Aggregated
-                </button>
-                <button
-                  className={forecastViewMode === 'individual' ? 'active' : ''}
-                  onClick={() => setForecastViewMode('individual')}
-                >
-                  Individual
-                </button>
-              </div>
-            </div>
-            {renderForecastView()}
+            <AggregatedView />
           </div>
         )}
       </main>

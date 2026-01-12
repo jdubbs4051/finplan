@@ -88,12 +88,12 @@ export function ForecastChart({ forecasts, aggregatedForecast, showAggregated, a
   const chartData = prepareChartData();
 
   const formatCurrency = (value) => {
-    if (value >= 1000000) {
-      return `$${(value / 1000000).toFixed(1)}M`;
-    } else if (value >= 1000) {
-      return `$${(value / 1000).toFixed(0)}K`;
-    }
-    return `$${value.toFixed(0)}`;
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
   };
 
   const CustomTooltip = ({ active, payload, label }) => {
@@ -149,6 +149,7 @@ export function ForecastChart({ forecasts, aggregatedForecast, showAggregated, a
           stroke="#00ff88"
           strokeWidth={2}
           strokeDasharray="5 5"
+          strokeOpacity={0.3}
           name="Total (+2%)"
           dot={false}
         />,
@@ -159,6 +160,7 @@ export function ForecastChart({ forecasts, aggregatedForecast, showAggregated, a
           stroke="#ff4444"
           strokeWidth={2}
           strokeDasharray="5 5"
+          strokeOpacity={0.3}
           name="Total (-2%)"
           dot={false}
         />
@@ -169,8 +171,8 @@ export function ForecastChart({ forecasts, aggregatedForecast, showAggregated, a
       // Individual account with variance
       return [
         <Line key="base" type="monotone" dataKey="Base" stroke="#00b9ff" strokeWidth={3} name="Base" dot={false} />,
-        <Line key="high" type="monotone" dataKey="+2%" stroke="#00ff88" strokeWidth={2} strokeDasharray="5 5" name="+2%" dot={false} />,
-        <Line key="low" type="monotone" dataKey="-2%" stroke="#ff4444" strokeWidth={2} strokeDasharray="5 5" name="-2%" dot={false} />
+        <Line key="high" type="monotone" dataKey="+2%" stroke="#00ff88" strokeWidth={2} strokeDasharray="5 5" strokeOpacity={0.3} name="+2%" dot={false} />,
+        <Line key="low" type="monotone" dataKey="-2%" stroke="#ff4444" strokeWidth={2} strokeDasharray="5 5" strokeOpacity={0.3} name="-2%" dot={false} />
       ];
     } else {
       // Fallback: show individual accounts

@@ -30,7 +30,14 @@ export function ProfileDisplay({ onEdit }) {
         </div>
         <div className="profile-item">
           <span className="label">Current Salary:</span>
-          <span className="value">${profile.currentSalary.toLocaleString()}</span>
+          <span className="value">
+            {new Intl.NumberFormat('en-US', {
+              style: 'currency',
+              currency: 'USD',
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0
+            }).format(profile.currentSalary)}
+          </span>
         </div>
         <div className="profile-item">
           <span className="label">Expected Salary Growth:</span>

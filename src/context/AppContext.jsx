@@ -6,67 +6,132 @@ const AppContext = createContext();
 export function AppProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [accounts, setAccounts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Load data from localStorage on mount
+  // Load data from API on mount
   useEffect(() => {
-    const savedProfile = storage.getProfile();
-    const savedAccounts = storage.getAccounts();
-    
-    if (savedProfile) {
-      setProfile(savedProfile);
-    }
-    if (savedAccounts) {
-      setAccounts(savedAccounts);
-    }
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const savedProfile = await storage.getProfile();
+        const savedAccounts = await storage.getAccounts();
+        
+        if (savedProfile) {
+          setProfile(savedProfile);
+        }
+        if (savedAccounts && Array.isArray(savedAccounts)) {
+          setAccounts(savedAccounts);
+        }
+      } catch (error) {
+        console.error('Error loading initial data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
   }, []);
 
-  // Save profile to localStorage whenever it changes
+  // Save profile to API whenever it changes
   useEffect(() => {
-    if (profile) {
-      storage.saveProfile(profile);
+    if (profile && !loading) {
+      storage.saveProfile(profile).catch(error => {
+        console.error('Failed to save profile:', error);
+      });
     }
-  }, [profile]);
-
-  // Save accounts to localStorage whenever they change
-  useEffect(() => {
-    if (accounts.length >= 0) {
-      storage.saveAccounts(accounts);
-    }
-  }, [accounts]);
+  }, [profile, loading]);
 
   const updateProfile = (newProfile) => {
     setProfile(newProfile);
   };
 
-  const addAccount = (account) => {
+  const addAccount = async (account) => {
     const newAccount = {
       ...account,
       id: account.id || `account_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: account.createdAt || Date.now()
+      createdAt: account.createdAt || Math.floor(Date.now() / 1000)
     };
+    
+    // Optimistically update UI
     setAccounts([...accounts, newAccount]);
+    
+    // Save to backend
+    try {
+      await storage.addAccount(newAccount);
+      // Reload accounts to ensure sync
+      const updatedAccounts = await storage.getAccounts();
+      if (updatedAccounts) {
+        setAccounts(updatedAccounts);
+      }
+    } catch (error) {
+      console.error('Failed to save account:', error);
+      // Revert optimistic update on error
+      setAccounts(accounts);
+      throw error;
+    }
   };
 
-  const updateAccount = (accountId, updatedAccount) => {
-    setAccounts(accounts.map(acc => 
-      acc.id === accountId ? { ...updatedAccount, id: accountId } : acc
-    ));
+  const updateAccount = async (accountId, updatedAccount) => {
+    const updated = { ...updatedAccount, id: accountId };
+    
+    // Optimistically update UI
+    const updatedAccounts = accounts.map(acc => 
+      acc.id === accountId ? updated : acc
+    );
+    setAccounts(updatedAccounts);
+    
+    // Save to backend
+    try {
+      await storage.updateAccount(accountId, updated);
+      // Reload accounts to ensure sync
+      const syncedAccounts = await storage.getAccounts();
+      if (syncedAccounts) {
+        setAccounts(syncedAccounts);
+      }
+    } catch (error) {
+      console.error('Failed to update account:', error);
+      // Revert optimistic update on error
+      setAccounts(accounts);
+      throw error;
+    }
   };
 
-  const deleteAccount = (accountId) => {
-    setAccounts(accounts.filter(acc => acc.id !== accountId));
+  const deleteAccount = async (accountId) => {
+    // Optimistically update UI
+    const updatedAccounts = accounts.filter(acc => acc.id !== accountId);
+    setAccounts(updatedAccounts);
+    
+    // Delete from backend
+    try {
+      await storage.deleteAccount(accountId);
+      // Reload accounts to ensure sync
+      const syncedAccounts = await storage.getAccounts();
+      if (syncedAccounts) {
+        setAccounts(syncedAccounts);
+      }
+    } catch (error) {
+      console.error('Failed to delete account:', error);
+      // Revert optimistic update on error
+      setAccounts(accounts);
+      throw error;
+    }
   };
 
-  const clearAllData = () => {
+  const clearAllData = async () => {
     setProfile(null);
     setAccounts([]);
-    storage.clearAll();
+    try {
+      await storage.clearAll();
+    } catch (error) {
+      console.error('Failed to clear data:', error);
+    }
   };
 
   return (
     <AppContext.Provider value={{
       profile,
       accounts,
+      loading,
       updateProfile,
       addAccount,
       updateAccount,

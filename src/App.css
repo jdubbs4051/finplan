@@ -15,17 +15,19 @@ body {
 
 .app {
   min-height: 100vh;
-  padding: 1rem;
-  max-width: 1400px;
-  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .app-main {
-  background: #161b22;
-  border: 1px solid #21262d;
-  border-radius: 0.5rem;
+  margin-left: 240px;
+  width: calc(100% - 240px);
+  background: #0d1117;
   padding: 2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  min-height: 100vh;
 }
 
 .accounts-header {

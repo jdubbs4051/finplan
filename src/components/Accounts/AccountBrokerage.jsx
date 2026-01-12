@@ -3,6 +3,7 @@ import './AccountForm.css';
 
 export function AccountBrokerage({ account, onSave, onCancel }) {
   const [formData, setFormData] = useState({
+    nickname: account?.nickname || '',
     currentBalance: account?.currentBalance || '',
     monthlyContribution: account?.monthlyContribution || '',
     timeHorizon: account?.timeHorizon || '',
@@ -42,6 +43,7 @@ export function AccountBrokerage({ account, onSave, onCancel }) {
 
     const accountData = {
       type: 'brokerage',
+      nickname: formData.nickname.trim() || undefined,
       currentBalance: Number(formData.currentBalance),
       monthlyContribution: Number(formData.monthlyContribution),
       timeHorizon: Number(formData.timeHorizon),
@@ -73,6 +75,20 @@ export function AccountBrokerage({ account, onSave, onCancel }) {
   return (
     <form onSubmit={handleSubmit} className="account-form">
       <h3>Regular Brokerage Account</h3>
+
+      <div className="form-group">
+        <label htmlFor="nickname">Nickname (Optional)</label>
+        <input
+          type="text"
+          id="nickname"
+          name="nickname"
+          value={formData.nickname}
+          onChange={handleChange}
+          placeholder="e.g., Investment Account, Trading Account"
+          maxLength={50}
+        />
+        <small className="form-help">Give this account a friendly name to identify it easily</small>
+      </div>
 
       <div className="form-group">
         <label htmlFor="currentBalance">Current Balance ($)</label>
