@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext.jsx';
+import { Header } from './components/Layout/Header.jsx';
 import { Navigation } from './components/Layout/Navigation.jsx';
 import { ProfileForm } from './components/Profile/ProfileForm.jsx';
 import { ProfileDisplay } from './components/Profile/ProfileDisplay.jsx';
@@ -9,6 +10,9 @@ import { AccountDividend } from './components/Accounts/AccountDividend.jsx';
 import { AccountHYSA } from './components/Accounts/AccountHYSA.jsx';
 import { AccountBrokerage } from './components/Accounts/AccountBrokerage.jsx';
 import { AggregatedView } from './components/Forecast/AggregatedView.jsx';
+import { ForecastTable } from './components/Forecast/ForecastTable.jsx';
+import { ForecastChart } from './components/Forecast/ForecastChart.jsx';
+import { calculateAccountForecast } from './utils/calculations.js';
 import './App.css';
 
 function AppContent() {
@@ -17,60 +21,41 @@ function AppContent() {
   const [showAccountForm, setShowAccountForm] = useState(false);
   const [selectedAccountType, setSelectedAccountType] = useState(null);
   const [editingAccount, setEditingAccount] = useState(null);
-  const [saveError, setSaveError] = useState(null);
-  const [saving, setSaving] = useState(false);
+  const [selectedAccountForForecast, setSelectedAccountForForecast] = useState(null);
+  const [forecastViewMode, setForecastViewMode] = useState('aggregated'); // 'aggregated' or 'individual'
 
   const handleAddAccount = () => {
     setEditingAccount(null);
     setShowAccountForm(true);
-    setSaveError(null);
   };
 
   const handleEditAccount = (account) => {
     setEditingAccount(account);
     setSelectedAccountType(account.type);
     setShowAccountForm(true);
-    setSaveError(null);
   };
 
-  const handleDeleteAccount = async (accountId) => {
+  const handleDeleteAccount = (accountId) => {
     if (window.confirm('Are you sure you want to delete this account?')) {
-      try {
-        await deleteAccount(accountId);
-      } catch (error) {
-        alert('Failed to delete account. Please try again.');
-        console.error('Delete error:', error);
-      }
+      deleteAccount(accountId);
     }
   };
 
-  const handleSaveAccount = async (accountData) => {
-    setSaving(true);
-    setSaveError(null);
-    
-    try {
-      if (editingAccount) {
-        await updateAccount(editingAccount.id, accountData);
-      } else {
-        await addAccount(accountData);
-      }
-      // Only close form if save succeeds
-      setShowAccountForm(false);
-      setSelectedAccountType(null);
-      setEditingAccount(null);
-    } catch (error) {
-      console.error('Failed to save account:', error);
-      setSaveError(error.message || 'Failed to save account. Please try again.');
-    } finally {
-      setSaving(false);
+  const handleSaveAccount = (accountData) => {
+    if (editingAccount) {
+      updateAccount(editingAccount.id, accountData);
+    } else {
+      addAccount(accountData);
     }
+    setShowAccountForm(false);
+    setSelectedAccountType(null);
+    setEditingAccount(null);
   };
 
   const handleCancelAccount = () => {
     setShowAccountForm(false);
     setSelectedAccountType(null);
     setEditingAccount(null);
-    setSaveError(null);
   };
 
   const renderAccountForm = () => {
@@ -91,9 +76,60 @@ function AppContent() {
     }
   };
 
+  const renderForecastView = () => {
+    if (forecastViewMode === 'aggregated') {
+      return <AggregatedView />;
+    } else {
+      // Individual account forecast
+      const forecasts = accounts.map(account => ({
+        accountType: account.type,
+        accountName: account.name || account.type,
+        forecast: calculateAccountForecast(account, profile)
+      }));
+
+      return (
+        <div>
+          <div className="forecast-controls">
+            <h3>Individual Account Forecast</h3>
+            <select
+              value={selectedAccountForForecast?.id || ''}
+              onChange={(e) => {
+                const account = accounts.find(acc => acc.id === e.target.value);
+                setSelectedAccountForForecast(account || null);
+              }}
+              className="account-selector"
+            >
+              <option value="">Select an account</option>
+              {accounts.map(account => (
+                <option key={account.id} value={account.id}>
+                  {account.type} - ${account.currentBalance.toLocaleString()}
+                </option>
+              ))}
+            </select>
+          </div>
+          {selectedAccountForForecast && (
+            <>
+              <ForecastChart
+                forecasts={[{
+                  accountType: selectedAccountForForecast.type,
+                  accountName: selectedAccountForForecast.type,
+                  forecast: calculateAccountForecast(selectedAccountForForecast, profile)
+                }]}
+                showAggregated={false}
+                accounts={accounts}
+                profile={profile}
+              />
+              <ForecastTable account={selectedAccountForForecast} showAggregated={false} />
+            </>
+          )}
+        </div>
+      );
+    }
+  };
 
   return (
     <div className="app">
+      <Header />
       <Navigation currentView={currentView} onViewChange={setCurrentView} />
 
       <main className="app-main">
@@ -162,48 +198,7 @@ function AppContent() {
                     </button>
                   </div>
                 ) : (
-                  <>
-                    {saveError && (
-                      <div style={{ 
-                        padding: '1rem', 
-                        marginBottom: '1rem', 
-                        backgroundColor: '#fee', 
-                        color: '#c33',
-                        borderRadius: '4px',
-                        border: '1px solid #fcc'
-                      }}>
-                        <strong>Error saving account:</strong> {saveError}
-                        {saveError.includes('Cannot connect to server') && (
-                          <div style={{ marginTop: '0.5rem', fontSize: '0.9em' }}>
-                            <p>To start the backend server, run:</p>
-                            <code style={{ 
-                              display: 'block', 
-                              padding: '0.5rem', 
-                              backgroundColor: '#fff', 
-                              color: '#000',
-                              borderRadius: '4px',
-                              marginTop: '0.5rem'
-                            }}>
-                              npm run server
-                            </code>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {saving && (
-                      <div style={{ 
-                        padding: '1rem', 
-                        marginBottom: '1rem', 
-                        backgroundColor: '#eef', 
-                        color: '#336',
-                        borderRadius: '4px',
-                        border: '1px solid #ccf'
-                      }}>
-                        Saving account...
-                      </div>
-                    )}
-                    {renderAccountForm()}
-                  </>
+                  renderAccountForm()
                 )}
               </div>
             )}
@@ -212,7 +207,24 @@ function AppContent() {
 
         {currentView === 'forecast' && (
           <div className="forecast-view">
-            <AggregatedView />
+            <div className="forecast-header">
+              <h2>Financial Forecast</h2>
+              <div className="forecast-mode-toggle">
+                <button
+                  className={forecastViewMode === 'aggregated' ? 'active' : ''}
+                  onClick={() => setForecastViewMode('aggregated')}
+                >
+                  Aggregated
+                </button>
+                <button
+                  className={forecastViewMode === 'individual' ? 'active' : ''}
+                  onClick={() => setForecastViewMode('individual')}
+                >
+                  Individual
+                </button>
+              </div>
+            </div>
+            {renderForecastView()}
           </div>
         )}
       </main>

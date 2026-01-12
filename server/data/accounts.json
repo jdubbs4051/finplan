@@ -1,0 +1,15 @@
+[
+  {
+    "type": "dividend",
+    "nickname": "D",
+    "currentBalance": 0,
+    "monthlyContribution": 100,
+    "timeHorizon": 20,
+    "expectedYield": 5,
+    "underlyingAssetGrowth": 3,
+    "dripEnabled": true,
+    "id": "account_1768249434579_8sed0odvo",
+    "createdAt": 1768249434,
+    "updatedAt": 1768249434
+  }
+]
