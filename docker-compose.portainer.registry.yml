@@ -1,15 +1,15 @@
 version: '3.8'
 
+# Alternative compose file for use with Docker registry (Docker Hub, GHCR, etc.)
+# Replace 'your-registry/financial-forecast:latest' with your actual image path
+# Examples:
+#   Docker Hub: username/financial-forecast:latest
+#   GHCR: ghcr.io/username/financial-forecast:latest
+#   Private registry: registry.example.com/financial-forecast:latest
+
 services:
   financial-forecast:
-    # Option 1: Build from source (recommended for Portainer)
-    # Upload the entire project directory to your NAS, then use this:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    # Option 2: Use pre-built image from registry
-    # Uncomment the line below and comment out the build section if using a registry:
-    # image: your-registry/financial-forecast:latest
+    image: your-registry/financial-forecast:latest
     container_name: financial-forecast
     restart: unless-stopped
     ports:

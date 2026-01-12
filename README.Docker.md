@@ -33,23 +33,34 @@ This guide explains how to deploy the Financial Forecast app using Docker and Do
 
 ### Option 2: Using Portainer Stacks
 
-1. **Build the Docker image** (on your development machine or NAS):
-   ```bash
-   docker build -t financial-forecast:latest .
-   ```
+**Two methods available:**
 
-2. **Push to registry** (if using a registry):
-   ```bash
-   docker tag financial-forecast:latest your-registry/financial-forecast:latest
-   docker push your-registry/financial-forecast:latest
-   ```
-
-3. **In Portainer**:
+#### Method A: Build from Source (Recommended)
+1. **Upload project** to your NAS (via Git clone, SMB, FTP, etc.)
+2. **In Portainer**:
    - Go to **Stacks** → **Add stack**
    - Name it `financial-forecast`
    - Paste the contents of `docker-compose.portainer.yml`
-   - **Important**: Update the volume path `/path/to/your/nas/storage/financial-forecast/data` to your actual NAS storage location
+   - Make sure the stack is created in the project directory
+   - Update the volume path to your NAS storage location
+   - Click **Deploy the stack** (Portainer will build automatically)
+
+#### Method B: Use Pre-built Image from Registry
+1. **Build and push** the image to a registry:
+   ```bash
+   docker build -t your-registry/financial-forecast:latest .
+   docker push your-registry/financial-forecast:latest
+   ```
+
+2. **In Portainer**:
+   - Go to **Stacks** → **Add stack**
+   - Name it `financial-forecast`
+   - Paste the contents of `docker-compose.portainer.registry.yml`
+   - Update the `image:` line with your registry path
+   - Update the volume path to your NAS storage location
    - Click **Deploy the stack**
+
+See `PORTAINER_SETUP.md` for detailed instructions.
 
 ## Configuration
 
