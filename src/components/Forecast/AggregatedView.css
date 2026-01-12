@@ -1,0 +1,89 @@
+.aggregated-view {
+  margin-bottom: 2rem;
+}
+
+.view-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.view-header h2 {
+  margin: 0;
+  color: #e5e7eb;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 0.5rem;
+  background: #21262d;
+  padding: 0.25rem;
+  border-radius: 0.375rem;
+}
+
+.view-toggle button {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  color: #8b949e;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 0.25rem;
+  transition: all 0.2s;
+}
+
+.view-toggle button:hover {
+  color: #e5e7eb;
+}
+
+.view-toggle button.active {
+  background: #161b22;
+  color: #00b9ff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.aggregated-view-empty {
+  padding: 3rem;
+  text-align: center;
+  color: #8b949e;
+  background: #0d1117;
+  border: 1px dashed #21262d;
+  border-radius: 0.5rem;
+}
+
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.stat-card {
+  background: #161b22;
+  border: 1px solid #21262d;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.stat-card.highlight {
+  border-color: #00b9ff;
+  background: #0a1629;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #8b949e;
+  margin-bottom: 0.5rem;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e5e7eb;
+}
+
+.stat-card.highlight .stat-value {
+  color: #00b9ff;
+}
