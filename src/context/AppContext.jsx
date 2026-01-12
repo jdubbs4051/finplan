@@ -52,22 +52,26 @@ export function AppProvider({ children }) {
       createdAt: account.createdAt || Math.floor(Date.now() / 1000)
     };
     
-    // Optimistically update UI
-    setAccounts([...accounts, newAccount]);
+    console.log('Adding account:', newAccount);
     
-    // Save to backend
+    // Save to backend first (don't do optimistic update to avoid confusion)
     try {
-      await storage.addAccount(newAccount);
-      // Reload accounts to ensure sync
+      const result = await storage.addAccount(newAccount);
+      if (!result) {
+        throw new Error('Failed to save account to backend');
+      }
+      
+      // Reload accounts from backend to ensure sync
       const updatedAccounts = await storage.getAccounts();
-      if (updatedAccounts) {
+      if (updatedAccounts && Array.isArray(updatedAccounts)) {
         setAccounts(updatedAccounts);
+      } else {
+        // Fallback: add to local state if backend returns invalid data
+        setAccounts([...accounts, newAccount]);
       }
     } catch (error) {
       console.error('Failed to save account:', error);
-      // Revert optimistic update on error
-      setAccounts(accounts);
-      throw error;
+      throw error; // Re-throw so caller can handle it
     }
   };
 

@@ -3,7 +3,10 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 // Helper function for API calls
 async function apiCall(endpoint, options = {}) {
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const url = `${API_BASE_URL}${endpoint}`;
+    console.log(`Making API call to: ${url}`, options.method || 'GET');
+    
+    const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
@@ -12,8 +15,15 @@ async function apiCall(endpoint, options = {}) {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Request failed' }));
-      throw new Error(error.error || `HTTP error! status: ${response.status}`);
+      let errorMessage = 'Request failed';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || `HTTP error! status: ${response.status}`;
+      } catch (e) {
+        errorMessage = `HTTP error! status: ${response.status} - ${response.statusText}`;
+      }
+      console.error(`API error for ${endpoint}:`, errorMessage, response.status);
+      throw new Error(errorMessage);
     }
 
     // Handle empty responses
@@ -23,6 +33,12 @@ async function apiCall(endpoint, options = {}) {
     }
     return null;
   } catch (error) {
+    // Check if it's a network error (server not running)
+    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.name === 'TypeError') {
+      const friendlyError = new Error('Cannot connect to server. Please make sure the backend server is running on port 3001.');
+      friendlyError.originalError = error;
+      throw friendlyError;
+    }
     console.error(`API call failed for ${endpoint}:`, error);
     throw error;
   }
@@ -152,14 +168,17 @@ export const storage = {
   // Individual account operations (for better sync)
   addAccount: async (account) => {
     try {
-      await apiCall('/accounts', {
+      console.log('Sending account to API:', account);
+      const result = await apiCall('/accounts', {
         method: 'POST',
         body: JSON.stringify(account),
       });
+      console.log('Account saved successfully:', result);
       return true;
     } catch (error) {
       console.error('Error adding account:', error);
-      return false;
+      console.error('Account data that failed:', account);
+      throw error; // Re-throw so caller can handle it
     }
   },
 

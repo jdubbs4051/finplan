@@ -17,39 +17,60 @@ function AppContent() {
   const [showAccountForm, setShowAccountForm] = useState(false);
   const [selectedAccountType, setSelectedAccountType] = useState(null);
   const [editingAccount, setEditingAccount] = useState(null);
+  const [saveError, setSaveError] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const handleAddAccount = () => {
     setEditingAccount(null);
     setShowAccountForm(true);
+    setSaveError(null);
   };
 
   const handleEditAccount = (account) => {
     setEditingAccount(account);
     setSelectedAccountType(account.type);
     setShowAccountForm(true);
+    setSaveError(null);
   };
 
-  const handleDeleteAccount = (accountId) => {
+  const handleDeleteAccount = async (accountId) => {
     if (window.confirm('Are you sure you want to delete this account?')) {
-      deleteAccount(accountId);
+      try {
+        await deleteAccount(accountId);
+      } catch (error) {
+        alert('Failed to delete account. Please try again.');
+        console.error('Delete error:', error);
+      }
     }
   };
 
-  const handleSaveAccount = (accountData) => {
-    if (editingAccount) {
-      updateAccount(editingAccount.id, accountData);
-    } else {
-      addAccount(accountData);
+  const handleSaveAccount = async (accountData) => {
+    setSaving(true);
+    setSaveError(null);
+    
+    try {
+      if (editingAccount) {
+        await updateAccount(editingAccount.id, accountData);
+      } else {
+        await addAccount(accountData);
+      }
+      // Only close form if save succeeds
+      setShowAccountForm(false);
+      setSelectedAccountType(null);
+      setEditingAccount(null);
+    } catch (error) {
+      console.error('Failed to save account:', error);
+      setSaveError(error.message || 'Failed to save account. Please try again.');
+    } finally {
+      setSaving(false);
     }
-    setShowAccountForm(false);
-    setSelectedAccountType(null);
-    setEditingAccount(null);
   };
 
   const handleCancelAccount = () => {
     setShowAccountForm(false);
     setSelectedAccountType(null);
     setEditingAccount(null);
+    setSaveError(null);
   };
 
   const renderAccountForm = () => {
@@ -141,7 +162,48 @@ function AppContent() {
                     </button>
                   </div>
                 ) : (
-                  renderAccountForm()
+                  <>
+                    {saveError && (
+                      <div style={{ 
+                        padding: '1rem', 
+                        marginBottom: '1rem', 
+                        backgroundColor: '#fee', 
+                        color: '#c33',
+                        borderRadius: '4px',
+                        border: '1px solid #fcc'
+                      }}>
+                        <strong>Error saving account:</strong> {saveError}
+                        {saveError.includes('Cannot connect to server') && (
+                          <div style={{ marginTop: '0.5rem', fontSize: '0.9em' }}>
+                            <p>To start the backend server, run:</p>
+                            <code style={{ 
+                              display: 'block', 
+                              padding: '0.5rem', 
+                              backgroundColor: '#fff', 
+                              color: '#000',
+                              borderRadius: '4px',
+                              marginTop: '0.5rem'
+                            }}>
+                              npm run server
+                            </code>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {saving && (
+                      <div style={{ 
+                        padding: '1rem', 
+                        marginBottom: '1rem', 
+                        backgroundColor: '#eef', 
+                        color: '#336',
+                        borderRadius: '4px',
+                        border: '1px solid #ccf'
+                      }}>
+                        Saving account...
+                      </div>
+                    )}
+                    {renderAccountForm()}
+                  </>
                 )}
               </div>
             )}
